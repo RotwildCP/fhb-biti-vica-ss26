@@ -3,6 +3,10 @@ name: "Destroy Infrastruktur"
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   destroy:
     runs-on: ubuntu-latest
@@ -21,10 +25,13 @@ jobs:
       - name: State laden
         uses: dawidd6/action-download-artifact@v6
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           name: terraform-state
           path: ./Prieller_Christian/Abgabe_2/terraform
           workflow: deploy.yml
+          branch: abgabe-2-prieller
           search_artifacts: true
+          check_artifacts: true
 
       - name: Terraform Init
         run: tofu init
