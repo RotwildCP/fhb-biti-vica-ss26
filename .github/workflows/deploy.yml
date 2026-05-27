@@ -18,12 +18,11 @@ jobs:
         with:
           tofu_version: "1.8.0"
 
-      - name: State laden
-        uses: actions/download-artifact@v4
+      - name: State aus Cache laden
+        uses: actions/cache/restore@v4
         with:
-          name: terraform-state
-          path: ./Prieller_Christian/Abgabe_2/terraform
-        continue-on-error: true
+          path: ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
+          key: tfstate-prieller
 
       - name: Terraform Init
         run: tofu init
@@ -43,13 +42,18 @@ jobs:
       - name: Outputs anzeigen
         run: tofu output -no-color
 
-      - name: State sichern
+      - name: State in Cache speichern
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
+          key: tfstate-prieller-${{ github.run_id }}
+
+      - name: State auch als Artifact sichern
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: terraform-state
-          path: |
-            ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
-            ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate.backup
+          path: ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
           retention-days: 90
           overwrite: true

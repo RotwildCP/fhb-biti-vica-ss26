@@ -3,10 +3,6 @@ name: "Destroy Infrastruktur"
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  actions: read
-
 jobs:
   destroy:
     runs-on: ubuntu-latest
@@ -22,16 +18,13 @@ jobs:
         with:
           tofu_version: "1.8.0"
 
-      - name: State laden
-        uses: dawidd6/action-download-artifact@v6
+      - name: State aus Cache laden
+        uses: actions/cache/restore@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          name: terraform-state
-          path: ./Prieller_Christian/Abgabe_2/terraform
-          workflow: deploy.yml
-          branch: abgabe-2-prieller
-          search_artifacts: true
-          check_artifacts: true
+          path: ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
+          key: tfstate-prieller
+          restore-keys: |
+            tfstate-prieller-
 
       - name: Terraform Init
         run: tofu init
@@ -41,3 +34,10 @@ jobs:
         env:
           TF_VAR_exoscale_api_key: ${{ secrets.EXOSCALE_API_KEY }}
           TF_VAR_exoscale_api_secret: ${{ secrets.EXOSCALE_API_SECRET }}
+
+      - name: Leeren State cachen
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ./Prieller_Christian/Abgabe_2/terraform/terraform.tfstate
+          key: tfstate-prieller-${{ github.run_id }}
