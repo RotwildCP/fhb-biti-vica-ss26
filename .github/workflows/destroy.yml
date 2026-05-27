@@ -3,47 +3,28 @@ name: "Destroy Infrastruktur"
 on:
   workflow_dispatch:
 
-permissions:
-  actions: read
-  contents: read
-
 jobs:
   destroy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./Prieller_Christian/Abgabe_2/terraform
+    env:
+      TF_VAR_exoscale_api_key: ${{ secrets.EXOSCALE_API_KEY }}
+      TF_VAR_exoscale_api_secret: ${{ secrets.EXOSCALE_API_SECRET }}
+      TF_WORKING_DIR: ./Prieller_Christian/Abgabe_2/terraform
 
     steps:
       - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
 
-      - name: OpenTofu installieren
-        uses: opentofu/setup-opentofu@v1
+      - name: State laden
+        uses: dawidd6/action-download-artifact@v3
         with:
-          tofu_version: "1.8.0"
+          workflow: deploy.yml
+          name: terraform-state
+          path: ${{ env.TF_WORKING_DIR }}/
+          search_artifacts: true
 
-      - name: State vom Deploy Workflow laden
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Terraform Init & Destroy
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          cd $GITHUB_WORKSPACE
-          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
-            --jq '.artifacts[] | select(.name=="terraform-state") | .archive_download_url' \
-            | head -1)
-          if [ -n "$ARTIFACT_URL" ]; then
-            curl -L -H "Authorization: token $GH_TOKEN" "$ARTIFACT_URL" -o state.zip
-            unzip -o state.zip -d ./Prieller_Christian/Abgabe_2/terraform/
-            echo "State erfolgreich geladen"
-          else
-            echo "Kein State gefunden"
-            exit 1
-          fi
-
-      - name: Terraform Init
-        run: tofu init
-
-      - name: Terraform Destroy
-        run: tofu destroy -auto-approve -no-color
-        env:
-          TF_VAR_exoscale_api_key: ${{ secrets.EXOSCALE_API_KEY }}
-          TF_VAR_exoscale_api_secret: ${{ secrets.EXOSCALE_API_SECRET }}
+          tofu init
+          tofu destroy -auto-approve
